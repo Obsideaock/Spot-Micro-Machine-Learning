@@ -1,0 +1,65 @@
+{
+    "SpotMicroBehavior": {
+        "checkpoints": [
+            {
+                "steps": 91899894,
+                "file_path": "results\\RebootV1.31\\SpotMicroBehavior\\SpotMicroBehavior-91899894.onnx",
+                "reward": 666.4544580578804,
+                "creation_time": 1736037747.4845734,
+                "auxillary_file_paths": [
+                    "results\\RebootV1.31\\SpotMicroBehavior\\SpotMicroBehavior-91899894.pt"
+                ]
+            },
+            {
+                "steps": 91949969,
+                "file_path": "results\\RebootV1.31\\SpotMicroBehavior\\SpotMicroBehavior-91949969.onnx",
+                "reward": 600.1194167503944,
+                "creation_time": 1736037781.7362027,
+                "auxillary_file_paths": [
+                    "results\\RebootV1.31\\SpotMicroBehavior\\SpotMicroBehavior-91949969.pt"
+                ]
+            },
+            {
+                "steps": 91999808,
+                "file_path": "results\\RebootV1.31\\SpotMicroBehavior\\SpotMicroBehavior-91999808.onnx",
+                "reward": 632.2934059729943,
+                "creation_time": 1736037815.408406,
+                "auxillary_file_paths": [
+                    "results\\RebootV1.31\\SpotMicroBehavior\\SpotMicroBehavior-91999808.pt"
+                ]
+            },
+            {
+                "steps": 92049964,
+                "file_path": "results\\RebootV1.31\\SpotMicroBehavior\\SpotMicroBehavior-92049964.onnx",
+                "reward": 599.6511352175758,
+                "creation_time": 1736037849.3434124,
+                "auxillary_file_paths": [
+                    "results\\RebootV1.31\\SpotMicroBehavior\\SpotMicroBehavior-92049964.pt"
+                ]
+            },
+            {
+                "steps": 92068952,
+                "file_path": "results\\RebootV1.31\\SpotMicroBehavior\\SpotMicroBehavior-92068952.onnx",
+                "reward": 652.7781512737274,
+                "creation_time": 1736040568.203569,
+                "auxillary_file_paths": [
+                    "results\\RebootV1.31\\SpotMicroBehavior\\SpotMicroBehavior-92068952.pt"
+                ]
+            }
+        ],
+        "final_checkpoint": {
+            "steps": 92068952,
+            "file_path": "results\\RebootV1.31\\SpotMicroBehavior.onnx",
+            "reward": 652.7781512737274,
+            "creation_time": 1736040568.203569,
+            "auxillary_file_paths": [
+                "results\\RebootV1.31\\SpotMicroBehavior\\SpotMicroBehavior-92068952.pt"
+            ]
+        }
+    },
+    "metadata": {
+        "stats_format_version": "0.3.0",
+        "mlagents_version": "0.30.0",
+        "torch_version": "2.4.0+cu121"
+    }
+}
