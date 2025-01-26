@@ -17,9 +17,9 @@ behaviors:
       num_layers: 2                  
       hidden_units: 256              
       normalize: True                
-      memory:
-        memory_size: 256             
-        sequence_length: 16          
+      #memory:
+      #  memory_size: 256             
+      #  sequence_length: 16          
     reward_signals:
       extrinsic:
         gamma: 0.99                  
