@@ -33,7 +33,10 @@ public class SpotMicroAgent : Agent
 
     private float timeSinceTargetMoved;
     private float previousDistanceToTarget;
-    private float targetRewardMultiplier = 1.0f; // Initial multiplier
+    private float targetRewardMultiplier = 1.0f;
+
+    private float[] previousJointAngles;
+    private const float maxServoAngularVelocity = 360f;
 
     public override void Initialize()
     {
@@ -59,6 +62,12 @@ public class SpotMicroAgent : Agent
         }
 
         timeSinceTargetMoved = 0f;
+
+        previousJointAngles = new float[hingeJointControllers.Length];
+        for (int i = 0; i < hingeJointControllers.Length; i++)
+        {
+            previousJointAngles[i] = hingeJointControllers[i].hingeJoint.angle;
+        }
     }
 
     public override void OnEpisodeBegin()
@@ -75,11 +84,23 @@ public class SpotMicroAgent : Agent
     }
 
     public override void CollectObservations(VectorSensor sensor)
+
+
     {
-        foreach (var controller in hingeJointControllers)
+        for (int i = 0; i < hingeJointControllers.Length; i++)
         {
-            float normalizedAngle = ((controller.hingeJoint.angle - controller.minAngle) / (controller.maxAngle - controller.minAngle)) * 2f - 1f;
+            var controller = hingeJointControllers[i];
+            float currentAngle = controller.hingeJoint.angle;
+            // Normalize the joint angle between -1 and 1.
+            float normalizedAngle = ((currentAngle - controller.minAngle) / (controller.maxAngle - controller.minAngle)) * 2f - 1f;
             sensor.AddObservation(normalizedAngle);
+
+            // Calculate angular velocity (change in angle over time).
+            float angularVelocity = (currentAngle - previousJointAngles[i]) / Time.deltaTime;
+            // Update the previous angle for the next frame.
+            previousJointAngles[i] = currentAngle;
+            // Normalize the angular velocity observation.
+            sensor.AddObservation(angularVelocity / maxServoAngularVelocity);
         }
 
         float accX = accelerometer.GetAccX();
@@ -119,6 +140,7 @@ public class SpotMicroAgent : Agent
         for (int i = 0; i < hingeJointControllers.Length; i++)
         {
             float targetAngle = Mathf.Lerp(hingeJointControllers[i].minAngle, hingeJointControllers[i].maxAngle, (continuousActions[i] + 1f) / 2f);
+            targetAngle = Mathf.Clamp(targetAngle, hingeJointControllers[i].minAngle, hingeJointControllers[i].maxAngle);
             hingeJointControllers[i].SetTargetAngle(targetAngle);
         }
 
@@ -129,7 +151,7 @@ public class SpotMicroAgent : Agent
     private void CalculateRewards()
     {
         float uprightedness = (Mathf.Clamp01(Vector3.Dot(mainBody.transform.forward.normalized, Vector3.up)))*2 - 1;
-       // AddReward(uprightedness * 2f);
+        
 
         float currentDistanceToTarget = Vector3.Distance(mainBody.position, targetObject.position);
         float distanceDifference = previousDistanceToTarget - currentDistanceToTarget;
@@ -150,8 +172,9 @@ public class SpotMicroAgent : Agent
         //{
         //AddReward(velocityTowardTarget); // Scale reward by the velocity magnitude
         //}
-
-        AddReward(velocityTowardTarget*overlap);
+        rewards = velocityTowardTarget * overlap * uprightedness;
+        Debug.Log(rewards); 
+        AddReward(rewards);
         
     }
 
