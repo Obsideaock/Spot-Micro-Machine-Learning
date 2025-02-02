@@ -3,26 +3,26 @@ behaviors:
     trainer_type: ppo
     hyperparameters:
       batch_size: 512
-      buffer_size: 10240         # Increased to gather more diverse samples
+      buffer_size: 20480         # Increased to gather more diverse samples
       learning_rate_schedule: linear
-      learning_rate: 1e-3          # Increased learning rate for faster learning
+      learning_rate: 5e-4          # Increased learning rate for faster learning
       beta: 0.01                 # Increased entropy coefficient for more exploration
       beta_schedule: linear
       epsilon: 0.20
       epsilon_schedule: linear
       lambd: 0.95
-      num_epoch: 10              # More epochs per update to better learn from samples
+      num_epoch: 7              # More epochs per update to better learn from samples
       shared_critic: False
     network_settings:
       num_layers: 2
       hidden_units: 256
       normalize: True
-      #memory:
-      #  memory_size: 256
-      #  sequence_length: 16    # Consider enabling if partial observability is an issue
+      memory:
+        memory_size: 256
+        sequence_length: 16    # Consider enabling if partial observability is an issue
     reward_signals:
       extrinsic:
-        gamma: 0.99
+        gamma: 0.995
         strength: 1
         network_settings:
           hidden_units: 256
