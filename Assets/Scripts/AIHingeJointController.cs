@@ -2,23 +2,32 @@ using UnityEngine;
 
 public class AIHingeJointController : MonoBehaviour
 {
-    public new HingeJoint hingeJoint; // Use the 'new' keyword to hide inherited member
-    public float maxMotorForce = 10.0f;
-    public float minAngle = -45.0f;
-    public float maxAngle = 45.0f;
+    // Use the "new" keyword to hide any inherited member with the same name.
+    public new HingeJoint hingeJoint;
 
-    private float targetAngle = 0.0f;
+    // Motor settings.
+    public float maxMotorForce = 10f;
+    public float minAngle = -45f;
+    public float maxAngle = 45f;
 
-    [SerializeField, ReadOnly]
-    private float currentAngle = 0.0f;
+    // The desired target angle.
+    private float targetAngle;
 
-    void Start()
+    /// <summary>
+    /// Returns the current angle of the hinge joint.
+    /// </summary>
+    public float CurrentAngle
+    {
+        get { return hingeJoint ? hingeJoint.angle : 0f; }
+    }
+
+    private void Awake()
     {
         if (hingeJoint == null)
         {
             hingeJoint = GetComponent<HingeJoint>();
         }
-
+        // Set up joint limits.
         JointLimits limits = hingeJoint.limits;
         limits.min = minAngle;
         limits.max = maxAngle;
@@ -26,29 +35,26 @@ public class AIHingeJointController : MonoBehaviour
         hingeJoint.useLimits = true;
     }
 
-    void Update()
-    {
-        currentAngle = hingeJoint.angle;
-    }
-
+    /// <summary>
+    /// Sets the target angle for the joint and updates the motor.
+    /// </summary>
+    /// <param name="angle">Desired target angle (in degrees).</param>
     public void SetTargetAngle(float angle)
     {
         targetAngle = Mathf.Clamp(angle, minAngle, maxAngle);
         UpdateMotor();
     }
 
-    void UpdateMotor()
+    /// <summary>
+    /// Updates the motor parameters based on the current target angle.
+    /// </summary>
+    private void UpdateMotor()
     {
+        float velocity = (targetAngle - CurrentAngle) * 1f; // Adjust multiplier if needed.
         JointMotor motor = hingeJoint.motor;
-        motor.targetVelocity = CalculateTargetVelocity();
         motor.force = maxMotorForce;
+        motor.targetVelocity = velocity;
         hingeJoint.motor = motor;
         hingeJoint.useMotor = true;
-    }
-
-    float CalculateTargetVelocity()
-    {
-        float velocity = (targetAngle - currentAngle) * 1f; // Adjust the multiplier as needed
-        return velocity;
     }
 }

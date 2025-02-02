@@ -11,7 +11,6 @@ public class SpotMicroAgent : Agent
     public Transform targetObject;
     public Transform plane;
     public Transform spotMicro;
-
     public Transform body;
 
     public UltrasonicSensor ultrasonicSensorLeft;
@@ -35,6 +34,7 @@ public class SpotMicroAgent : Agent
     private float previousDistanceToTarget;
     private float targetRewardMultiplier = 1.0f;
 
+    // For servo velocity observations.
     private float[] previousJointAngles;
     private const float maxServoAngularVelocity = 360f;
 
@@ -75,63 +75,97 @@ public class SpotMicroAgent : Agent
         ResetAgent();
         ResetTarget();
         previousDistanceToTarget = Vector3.Distance(mainBody.position, targetObject.position);
-
-        // Reset the reward multiplier at the beginning of each episode
         targetRewardMultiplier = 1.0f;
-
-        // Reset floor material after a short delay
         StartCoroutine(ResetFloorMaterialWithDelay());
     }
 
     public override void CollectObservations(VectorSensor sensor)
-
-
     {
+        // --- Group 1: Joint Observations (angles and angular velocities) ---
+        string jointLog = "Joint Observations: ";
         for (int i = 0; i < hingeJointControllers.Length; i++)
         {
             var controller = hingeJointControllers[i];
             float currentAngle = controller.hingeJoint.angle;
-            // Normalize the joint angle between -1 and 1.
             float normalizedAngle = ((currentAngle - controller.minAngle) / (controller.maxAngle - controller.minAngle)) * 2f - 1f;
             sensor.AddObservation(normalizedAngle);
 
-            // Calculate angular velocity (change in angle over time).
             float angularVelocity = (currentAngle - previousJointAngles[i]) / Time.deltaTime;
-            // Update the previous angle for the next frame.
             previousJointAngles[i] = currentAngle;
-            // Normalize the angular velocity observation.
-            sensor.AddObservation(angularVelocity / maxServoAngularVelocity);
-        }
+            float normalizedAngularVelocity = angularVelocity / maxServoAngularVelocity;
+            sensor.AddObservation(normalizedAngularVelocity);
 
+            jointLog += $"[Joint {i}: Angle={normalizedAngle:F2}, AngularVel={normalizedAngularVelocity:F2}] ";
+        }
+        //Debug.Log(jointLog);
+
+        // --- Group 2: Accelerometer & Height Sensor ---
         float accX = accelerometer.GetAccX();
         float accY = accelerometer.GetAccY();
         float accZ = accelerometer.GetAccZ();
+        float normalizedAccX = (accX) / 10f;
+        float normalizedAccY = (accY) / 10f;
+        float normalizedAccZ = (accZ) / 10f;
+        sensor.AddObservation(normalizedAccX);
+        sensor.AddObservation(normalizedAccY);
+        sensor.AddObservation(normalizedAccZ);
 
-        sensor.AddObservation((accX) / 180f - 1f);
-        sensor.AddObservation((accY) / 180f - 1f);
-        sensor.AddObservation((accZ) / 180f - 1f);
+        float normalizedHeight = heightSensor.GetDistance() / 25f;
+        sensor.AddObservation(normalizedHeight);
 
-        sensor.AddObservation(heightSensor.GetDistance() / 20f);
+        //Debug.Log($"Accelerometer: X={normalizedAccX:F2}, Y={normalizedAccY:F2}, Z={normalizedAccZ:F2}; Height: {normalizedHeight:F2}");
 
+        // --- Group 3: Distance & Ultrasonic Sensors ---
         Vector3 directionToTarget = targetObject.position - mainBody.position;
         float distanceToTarget = directionToTarget.magnitude;
+        if (distanceToTarget > 400f)
+        {
+            distanceToTarget = 400f;
+        }
+        float normalizedDistance = distanceToTarget / 160f;
+        if (normalizedDistance < 1f)
+        {
+            normalizedDistance = 1f;
+        }
+        sensor.AddObservation(normalizedDistance);
 
-        sensor.AddObservation(distanceToTarget / 40);
+        float normalizedUltrasonicLeft = ultrasonicSensorLeft.GetDistance() / 40f;
+        sensor.AddObservation(normalizedUltrasonicLeft);
+        float normalizedUltrasonicRight = ultrasonicSensorRight.GetDistance() / 40f;
+        sensor.AddObservation(normalizedUltrasonicRight);
 
-        sensor.AddObservation(ultrasonicSensorLeft.GetDistance() / 400);
-        sensor.AddObservation(ultrasonicSensorRight.GetDistance() / 400);
+        //Debug.Log($"Distance to Target: {normalizedDistance:F2}, Ultrasonic Left: {normalizedUltrasonicLeft:F2}, Ultrasonic Right: {normalizedUltrasonicRight:F2}");
 
-        float overlap = (directionSensor.GetOverlap() / 50f) - 1;
-        sensor.AddObservation(overlap);
+        // --- Group 4: Overlap & Main Body Angular Velocity ---
+        float normalizedOverlap = (directionSensor.GetOverlap() / 50f) - 1f;
+        sensor.AddObservation(normalizedOverlap);
 
         Rigidbody mainBodyRb = mainBody.GetComponent<Rigidbody>();
-        sensor.AddObservation(mainBodyRb.angularVelocity.x / 10f);
-        sensor.AddObservation(mainBodyRb.angularVelocity.y / 10f);
-        sensor.AddObservation(mainBodyRb.angularVelocity.z / 10f);
+        float angularVelocityX = mainBodyRb.angularVelocity.x / 10f;
+        float angularVelocityY = mainBodyRb.angularVelocity.y / 10f;
+        float angularVelocityZ = mainBodyRb.angularVelocity.z / 10f;
+        sensor.AddObservation(angularVelocityX);
+        sensor.AddObservation(angularVelocityY);
+        sensor.AddObservation(angularVelocityZ);
 
-        sensor.AddObservation(mainBodyRb.velocity.x / 10f); // X direction velocity
-        sensor.AddObservation(mainBodyRb.velocity.y / 10f); // Y direction velocity
-        sensor.AddObservation(mainBodyRb.velocity.z / 10f); // Z direction velocity
+        //Debug.Log($"Overlap: {normalizedOverlap:F2}, Main Body Angular Velocity: X={angularVelocityX:F2}, Y={angularVelocityY:F2}, Z={angularVelocityZ:F2}");
+
+        // --- Group 5: Main Body Linear Velocity ---
+        // Get the local velocity relative to mainBody's rotation
+        Vector3 localVelocity = mainBodyRb.transform.InverseTransformDirection(mainBodyRb.velocity);
+
+        // Normalize each component (assuming the intended range is -10 to 10 mapped to -1 to 1)
+        // Note: Dividing by -10f inverts the sign; if that’s intentional, keep it.
+        float velocityX = localVelocity.x / -10f;
+        float velocityY = localVelocity.y / -10f;
+        float velocityZ = localVelocity.z / -10f;
+
+        sensor.AddObservation(velocityX);
+        sensor.AddObservation(velocityY);
+        sensor.AddObservation(velocityZ);
+
+
+        //Debug.Log($"Main Body Linear Velocity: X={velocityX:F2}, Y={velocityY:F2}, Z={velocityZ:F2}");
     }
 
     public override void OnActionReceived(ActionBuffers actions)
@@ -139,9 +173,10 @@ public class SpotMicroAgent : Agent
         var continuousActions = actions.ContinuousActions;
         for (int i = 0; i < hingeJointControllers.Length; i++)
         {
-            float targetAngle = Mathf.Lerp(hingeJointControllers[i].minAngle, hingeJointControllers[i].maxAngle, (continuousActions[i] + 1f) / 2f);
-            targetAngle = Mathf.Clamp(targetAngle, hingeJointControllers[i].minAngle, hingeJointControllers[i].maxAngle);
-            hingeJointControllers[i].SetTargetAngle(targetAngle);
+            float mappedAngle = Mathf.Lerp(hingeJointControllers[i].minAngle,
+                                             hingeJointControllers[i].maxAngle,
+                                             (continuousActions[i] + 1f) / 2f);
+            hingeJointControllers[i].SetTargetAngle(mappedAngle);
         }
 
         CalculateRewards();
@@ -150,46 +185,30 @@ public class SpotMicroAgent : Agent
 
     private void CalculateRewards()
     {
-        float uprightedness = (Mathf.Clamp01(Vector3.Dot(mainBody.transform.forward.normalized, Vector3.up)))*2 - 1;
-        
+        Rigidbody mainBodyRb = mainBody.GetComponent<Rigidbody>();
 
-        float currentDistanceToTarget = Vector3.Distance(mainBody.position, targetObject.position);
-        float distanceDifference = previousDistanceToTarget - currentDistanceToTarget;
-       // AddReward(distanceDifference * 5f);
-        previousDistanceToTarget = currentDistanceToTarget;
+        float uprightedness = (accelerometer.GetAccY()) / 10f;
 
         float overlap = (directionSensor.GetOverlap() / 50f) - 1f;
-        //Debug.Log("Overlap" + overlap);
-        //AddReward(overlap);
 
-        // Reward for moving in the direction of the target
         Vector3 directionToTarget = (targetObject.position - mainBody.position).normalized;
-        Rigidbody mainBodyRb = mainBody.GetComponent<Rigidbody>();
         Vector3 velocity = mainBodyRb.velocity;
+        float velocityTowardTarget = Vector3.Dot(velocity, directionToTarget);
 
-        float velocityTowardTarget = Vector3.Dot(velocity, directionToTarget); // Measure velocity in the direction of the target
-        //if (velocityTowardTarget < 0)
-        //{
-        //AddReward(velocityTowardTarget); // Scale reward by the velocity magnitude
-        //}
-        rewards = velocityTowardTarget * overlap * uprightedness;
-        Debug.Log(rewards); 
+        float rewards = velocityTowardTarget * uprightedness * overlap;
+        //float rewards = velocityTowardTarget + uprightedness + overlap;
+        //Debug.Log($"Reward Components -> Velocity: {velocityTowardTarget:F2}, Overlap: {overlap:F2}, Uprightedness: {uprightedness:F2}");
+        //Debug.Log($"Total Reward: {rewards:F2}");
         AddReward(rewards);
-        
     }
 
     public void OnBodyCollisionWithTarget()
     {
-        // Apply the cumulative multiplier to the reward for reaching the target
         AddReward(50 * targetRewardMultiplier);
         floorMeshRenderer.material = winMaterial;
-
-        // Increase the multiplier for the next time the target is reached
-        //targetRewardMultiplier += 0.25f;
-
+        // Optionally increase the multiplier.
+        // targetRewardMultiplier += 0.25f;
         MoveTarget();
-
-        // Reset floor material after a short delay
         StartCoroutine(ResetFloorMaterialWithDelay());
     }
 
@@ -198,8 +217,6 @@ public class SpotMicroAgent : Agent
         AddReward(-50.0f);
         floorMeshRenderer.material = loseMaterial;
         EndEpisode();
-
-        // Reset floor material after a short delay
         StartCoroutine(ResetFloorMaterialWithDelay());
     }
 
@@ -207,18 +224,12 @@ public class SpotMicroAgent : Agent
     {
         Renderer planeRenderer = plane.GetComponent<Renderer>();
         Bounds planeBounds = planeRenderer.bounds;
-
-        // Randomize SpotMicro's Y-axis rotation
-        
-
         Vector3 planeCenter = new Vector3(
             (planeBounds.min.x + planeBounds.max.x) / 2f,
             initialMainBodyPosition.y,
             (planeBounds.min.z + planeBounds.max.z) / 2f
         );
-
         spotMicro.position = planeCenter;
-
         Transform[] allParts = spotMicro.GetComponentsInChildren<Transform>();
         for (int i = 0; i < allParts.Length; i++)
         {
@@ -230,68 +241,44 @@ public class SpotMicroAgent : Agent
                 rigidbodies[i].angularVelocity = Vector3.zero;
             }
         }
-
         foreach (var controller in hingeJointControllers)
         {
             controller.hingeJoint.motor = new JointMotor();
             controller.hingeJoint.useMotor = true;
         }
-
         timeSinceTargetMoved = 0f;
-
         float randomRotationY = Random.Range(0f, 360f);
         spotMicro.rotation = Quaternion.Euler(0f, randomRotationY, 0f);
-
         ResetTarget();
     }
 
-
     private void ResetTarget()
     {
-        // Random distance between 10 and 25 units
-        float distanceToTarget = Random.Range(20f, 30f);
-
-        // Randomize the angle offset from the forward direction
-        float angleOffset = Random.Range(-10f, 10f); // Adjust range as needed for variety
+        float distanceToTarget = Random.Range(10f, 20f);
+        float angleOffset = Random.Range(-10f, 10f);
         Quaternion randomRotation = Quaternion.Euler(0f, angleOffset + 180f, 0f);
-
-        // Compute a new direction with the random angle
         Vector3 forwardDirection = (randomRotation * spotMicro.forward).normalized;
-
-        // Calculate the new target position
         Vector3 newTargetPosition = spotMicro.position + forwardDirection * distanceToTarget;
         newTargetPosition.y = targetObject.position.y;
-
-
-        // Set the target's position
         targetObject.position = newTargetPosition;
-
-        // Update the previous distance to the target
         previousDistanceToTarget = Vector3.Distance(spotMicro.position, targetObject.position);
         timeSinceTargetMoved = 0f;
-
     }
-
 
     private void MoveTarget()
     {
-        float distanceToTarget = Random.Range(25f, 35f);
-        float angleOffset = Random.Range(-10f, 10f); // Adjust target direction by ±10 degrees
+        float distanceToTarget = Random.Range(20f, 30f);
+        float angleOffset = Random.Range(-10f, 10f);
         Quaternion rotationAdjustment = Quaternion.Euler(0, angleOffset, 0);
-
         Vector3 directionToTarget = (targetObject.position - mainBody.position).normalized;
         Vector3 adjustedDirection = rotationAdjustment * directionToTarget;
         Vector3 newTargetPosition = targetObject.position + adjustedDirection * distanceToTarget;
-
         Renderer planeRenderer = plane.GetComponent<Renderer>();
         Bounds planeBounds = planeRenderer.bounds;
-
         newTargetPosition.x = Mathf.Clamp(newTargetPosition.x, planeBounds.min.x + 1f, planeBounds.max.x - 1f);
         newTargetPosition.z = Mathf.Clamp(newTargetPosition.z, planeBounds.min.z + 1f, planeBounds.max.z - 1f);
-
-        newTargetPosition.y = targetObject.position.y; // Maintain original Y position
+        newTargetPosition.y = targetObject.position.y;
         targetObject.position = newTargetPosition;
-
         previousDistanceToTarget = Vector3.Distance(mainBody.position, targetObject.position);
         timeSinceTargetMoved = 0f;
     }

@@ -2,7 +2,7 @@ using UnityEngine;
 
 public class UltrasonicSensor : MonoBehaviour
 {
-    public float maxDistance = 25f; // Maximum distance the sensor can measure
+    public float maxDistance = 40f; // Maximum distance the sensor can measure
     private float distance;
 
     void Update()
@@ -22,6 +22,10 @@ public class UltrasonicSensor : MonoBehaviour
 
     public float GetDistance()
     {
+        if (distance > 40f)
+        {
+            return 40f;
+        }
         return distance;
     }
 }
