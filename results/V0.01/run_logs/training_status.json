@@ -1,0 +1,65 @@
+{
+    "SpotMicroBehavior": {
+        "checkpoints": [
+            {
+                "steps": 15399948,
+                "file_path": "results\\V0.01\\SpotMicroBehavior\\SpotMicroBehavior-15399948.onnx",
+                "reward": 471.34192742567797,
+                "creation_time": 1738486119.957558,
+                "auxillary_file_paths": [
+                    "results\\V0.01\\SpotMicroBehavior\\SpotMicroBehavior-15399948.pt"
+                ]
+            },
+            {
+                "steps": 15449950,
+                "file_path": "results\\V0.01\\SpotMicroBehavior\\SpotMicroBehavior-15449950.onnx",
+                "reward": 431.38645781411066,
+                "creation_time": 1738486187.3030124,
+                "auxillary_file_paths": [
+                    "results\\V0.01\\SpotMicroBehavior\\SpotMicroBehavior-15449950.pt"
+                ]
+            },
+            {
+                "steps": 15499694,
+                "file_path": "results\\V0.01\\SpotMicroBehavior\\SpotMicroBehavior-15499694.onnx",
+                "reward": 401.0210403601329,
+                "creation_time": 1738486244.1852891,
+                "auxillary_file_paths": [
+                    "results\\V0.01\\SpotMicroBehavior\\SpotMicroBehavior-15499694.pt"
+                ]
+            },
+            {
+                "steps": 15549789,
+                "file_path": "results\\V0.01\\SpotMicroBehavior\\SpotMicroBehavior-15549789.onnx",
+                "reward": 586.8695648193359,
+                "creation_time": 1738486311.0771952,
+                "auxillary_file_paths": [
+                    "results\\V0.01\\SpotMicroBehavior\\SpotMicroBehavior-15549789.pt"
+                ]
+            },
+            {
+                "steps": 15583027,
+                "file_path": "results\\V0.01\\SpotMicroBehavior\\SpotMicroBehavior-15583027.onnx",
+                "reward": 409.7885778921622,
+                "creation_time": 1738486406.2635925,
+                "auxillary_file_paths": [
+                    "results\\V0.01\\SpotMicroBehavior\\SpotMicroBehavior-15583027.pt"
+                ]
+            }
+        ],
+        "final_checkpoint": {
+            "steps": 15583027,
+            "file_path": "results\\V0.01\\SpotMicroBehavior.onnx",
+            "reward": 409.7885778921622,
+            "creation_time": 1738486406.2635925,
+            "auxillary_file_paths": [
+                "results\\V0.01\\SpotMicroBehavior\\SpotMicroBehavior-15583027.pt"
+            ]
+        }
+    },
+    "metadata": {
+        "stats_format_version": "0.3.0",
+        "mlagents_version": "0.30.0",
+        "torch_version": "2.4.0+cu121"
+    }
+}

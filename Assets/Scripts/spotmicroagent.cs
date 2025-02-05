@@ -38,8 +38,11 @@ public class SpotMicroAgent : Agent
     private float[] previousJointAngles;
     private const float maxServoAngularVelocity = 360f;
 
+    public bool isAlive { get; private set; }
+
     public override void Initialize()
     {
+        isAlive = true;
         initialMainBodyPosition = mainBody.position;
         initialMainBodyRotation = mainBody.rotation;
 
@@ -72,11 +75,17 @@ public class SpotMicroAgent : Agent
 
     public override void OnEpisodeBegin()
     {
+        //isAlive = true;
         ResetAgent();
         ResetTarget();
         previousDistanceToTarget = Vector3.Distance(mainBody.position, targetObject.position);
         targetRewardMultiplier = 1.0f;
         StartCoroutine(ResetFloorMaterialWithDelay());
+    }
+
+    public void ReactivateAgent()
+    {
+        isAlive = true;
     }
 
     public override void CollectObservations(VectorSensor sensor)
@@ -214,14 +223,17 @@ public class SpotMicroAgent : Agent
 
     public void OnBodyCollisionWithWall()
     {
+        isAlive = false;
         AddReward(-50.0f);
         floorMeshRenderer.material = loseMaterial;
         EndEpisode();
         StartCoroutine(ResetFloorMaterialWithDelay());
+        StartCoroutine(Died());
     }
 
     private void ResetAgent()
     {
+        //isAlive = true;
         Renderer planeRenderer = plane.GetComponent<Renderer>();
         Bounds planeBounds = planeRenderer.bounds;
         Vector3 planeCenter = new Vector3(
@@ -267,7 +279,7 @@ public class SpotMicroAgent : Agent
 
     private void MoveTarget()
     {
-        float distanceToTarget = Random.Range(20f, 30f);
+        float distanceToTarget = Random.Range(10f, 20f);
         float angleOffset = Random.Range(-10f, 10f);
         Quaternion rotationAdjustment = Quaternion.Euler(0, angleOffset, 0);
         Vector3 directionToTarget = (targetObject.position - mainBody.position).normalized;
@@ -287,5 +299,11 @@ public class SpotMicroAgent : Agent
     {
         yield return new WaitForSeconds(2f);
         floorMeshRenderer.material = normalMaterial;
+    }
+
+    private IEnumerator Died()
+    {
+        yield return new WaitForSeconds(2f);
+        isAlive = true;
     }
 }
