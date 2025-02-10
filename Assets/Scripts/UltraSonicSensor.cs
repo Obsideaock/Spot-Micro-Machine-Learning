@@ -22,9 +22,9 @@ public class UltrasonicSensor : MonoBehaviour
 
     public float GetDistance()
     {
-        if (distance > 40f)
+        if (distance > maxDistance)
         {
-            return 40f;
+            return maxDistance;
         }
         return distance;
     }

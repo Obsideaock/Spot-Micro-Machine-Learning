@@ -200,14 +200,21 @@ public class SpotMicroAgent : Agent
 
         float overlap = (directionSensor.GetOverlap() / 50f) - 1f;
 
+        float height = heightSensor.GetDistance() / 25f;
+        
+        if (height > .25f)
+        {
+            height = 1f;
+        }else if (height <= .25f)
+        {
+            height = height / .25f;
+        }
+
         Vector3 directionToTarget = (targetObject.position - mainBody.position).normalized;
         Vector3 velocity = mainBodyRb.velocity;
         float velocityTowardTarget = Vector3.Dot(velocity, directionToTarget);
 
-        float rewards = velocityTowardTarget * uprightedness * overlap;
-        //float rewards = velocityTowardTarget + uprightedness + overlap;
-        //Debug.Log($"Reward Components -> Velocity: {velocityTowardTarget:F2}, Overlap: {overlap:F2}, Uprightedness: {uprightedness:F2}");
-        //Debug.Log($"Total Reward: {rewards:F2}");
+        float rewards = velocityTowardTarget * uprightedness * overlap * height;
         AddReward(rewards);
     }
 
@@ -279,18 +286,41 @@ public class SpotMicroAgent : Agent
 
     private void MoveTarget()
     {
+        // Determine a random distance and a slight random angle offset.
         float distanceToTarget = Random.Range(10f, 20f);
         float angleOffset = Random.Range(-10f, 10f);
+
+        // Compute the intended new target position.
         Quaternion rotationAdjustment = Quaternion.Euler(0, angleOffset, 0);
         Vector3 directionToTarget = (targetObject.position - mainBody.position).normalized;
-        Vector3 adjustedDirection = rotationAdjustment * directionToTarget;
-        Vector3 newTargetPosition = targetObject.position + adjustedDirection * distanceToTarget;
+        Vector3 computedTargetPosition = targetObject.position + (rotationAdjustment * directionToTarget) * distanceToTarget;
+
+        // Get the bounds of the plane.
         Renderer planeRenderer = plane.GetComponent<Renderer>();
         Bounds planeBounds = planeRenderer.bounds;
-        newTargetPosition.x = Mathf.Clamp(newTargetPosition.x, planeBounds.min.x + 1f, planeBounds.max.x - 1f);
-        newTargetPosition.z = Mathf.Clamp(newTargetPosition.z, planeBounds.min.z + 1f, planeBounds.max.z - 1f);
+
+        // Check if the computed target is outside the plane bounds.
+        bool offPlane = computedTargetPosition.x < planeBounds.min.x ||
+                        computedTargetPosition.x > planeBounds.max.x ||
+                        computedTargetPosition.z < planeBounds.min.z ||
+                        computedTargetPosition.z > planeBounds.max.z;
+
+        Vector3 newTargetPosition = computedTargetPosition;
+
+        // If it is off the plane, mirror its displacement relative to the agent.
+        if (offPlane)
+        {
+            Vector3 offset = computedTargetPosition - mainBody.position;
+            newTargetPosition = mainBody.position - offset; // Reflects the computed offset.
+        }
+
+        // Ensure the target's Y position remains unchanged.
         newTargetPosition.y = targetObject.position.y;
+
+        // Update the target's position.
         targetObject.position = newTargetPosition;
+
+        // Reset the tracking variables.
         previousDistanceToTarget = Vector3.Distance(mainBody.position, targetObject.position);
         timeSinceTargetMoved = 0f;
     }
