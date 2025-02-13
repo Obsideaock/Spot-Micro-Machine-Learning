@@ -213,8 +213,8 @@ public class SpotMicroAgent : Agent
         Vector3 directionToTarget = (targetObject.position - mainBody.position).normalized;
         Vector3 velocity = mainBodyRb.velocity;
         float velocityTowardTarget = Vector3.Dot(velocity, directionToTarget);
-
-        float rewards = velocityTowardTarget * uprightedness * overlap * height;
+        // negitive stuff is making weird.
+        float rewards = velocityTowardTarget * uprightedness * overlap;
         AddReward(rewards);
     }
 
