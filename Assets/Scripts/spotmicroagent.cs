@@ -215,6 +215,11 @@ public class SpotMicroAgent : Agent
         float velocityTowardTarget = Vector3.Dot(velocity, directionToTarget);
         // negitive stuff is making weird.
         float rewards = velocityTowardTarget * uprightedness * overlap;
+
+        if (uprightedness < 0f || overlap < 0f || velocityTowardTarget < 0f)
+        {
+            rewards = -Mathf.Abs(rewards);
+        }
         AddReward(rewards);
     }
 
@@ -227,7 +232,7 @@ public class SpotMicroAgent : Agent
         float reward = 50f - secondsElapsed;
 
         // Ensure the reward doesn't go below 20 points.
-        reward = Mathf.Max(reward, 20f);
+        reward = Mathf.Max(reward, 30f);
 
         AddReward(reward*targetRewardMultiplier);
         floorMeshRenderer.material = winMaterial;
