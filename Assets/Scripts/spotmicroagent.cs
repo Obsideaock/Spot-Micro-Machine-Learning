@@ -220,10 +220,19 @@ public class SpotMicroAgent : Agent
 
     public void OnBodyCollisionWithTarget()
     {
-        AddReward(50 * targetRewardMultiplier);
+        // Calculate elapsed whole seconds since the target moved.
+        int secondsElapsed = Mathf.FloorToInt(timeSinceTargetMoved);
+
+        // Start with a base reward of 50 and subtract 1 point per elapsed second.
+        float reward = 50f - secondsElapsed;
+
+        // Ensure the reward doesn't go below 20 points.
+        reward = Mathf.Max(reward, 20f);
+
+        AddReward(reward*targetRewardMultiplier);
         floorMeshRenderer.material = winMaterial;
-        // Optionally increase the multiplier.
-        // targetRewardMultiplier += 0.25f;
+
+        // Move the target and reset the timer.
         MoveTarget();
         StartCoroutine(ResetFloorMaterialWithDelay());
     }
